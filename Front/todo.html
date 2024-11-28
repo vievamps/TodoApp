@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerenciar Tarefas</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+  <h1>Gerenciar Tarefas</h1>
+
+  <h2>Adicionar Nova Tarefa</h2>
+  <form id="taskForm">
+    <input type="text" id="titulo" placeholder="Título da Tarefa" required />
+    <button type="submit">Adicionar Tarefa</button>
+  </form>
+
+  <h2>Lista de Tarefas</h2>
+  <ul id="taskList"></ul>
+  <button class="btn btn-danger" id="logoutButton">Sair</button>
+
+  <script>
+//mostrar tarfeas
+    async function listarTarefas() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Você precisa estar logado.');
+        return;
+      }
+
+      try {
+      
+        const response = await axios.get('http://localhost:3000/tarefa', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const tarefas = response.data;
+        const taskList = document.getElementById('taskList');
+        taskList.innerHTML = '';  
+
+        tarefas.forEach(tarefa => {
+          const li = document.createElement('li');
+          li.setAttribute('data-id', tarefa._id);
+          li.innerHTML = `
+            <span>${tarefa.titulo}</span>
+            <button class="editarBtn">Editar</button>
+            <button class="deletarBtn">Excluir</button>
+          `;
+          taskList.appendChild(li);
+
+         
+          li.querySelector('.editarBtn').addEventListener('click', function () {
+            editarTarefa(tarefa._id, tarefa.titulo);
+          });
+          li.querySelector('.deletarBtn').addEventListener('click', function () {
+            deletarTarefa(tarefa._id);
+          });
+        });
+      } catch (error) {
+        console.error('Erro ao listar tarefas:', error);
+        alert('Não foi possível carregar as tarefas.');
+      }
+    }
+
+   // adiconar tarefa
+    async function adicionarTarefa(event) {
+      event.preventDefault(); 
+
+      const titulo = document.getElementById('titulo').value.trim();  
+
+      if (!titulo) {
+        alert('O título da tarefa não pode ser vazio.');
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Você precisa estar logado.');
+        return;
+      }
+
+      try {
+        const response = await axios.post('http://localhost:3000/tarefa', {
+          titulo: titulo,
+          situacao: false,  
+        }, {
+          headers: { Authorization: `Bearer ${token}` }, 
+        });
+
+        const novaTarefa = response.data;
+        const taskList = document.getElementById('taskList');
+        const li = document.createElement('li');
+        li.setAttribute('data-id', novaTarefa._id);
+        li.innerHTML = `
+          <span>${novaTarefa.titulo}</span>
+          <button class="editarBtn">Editar</button>
+          <button class="deletarBtn">Excluir</button>
+        `;
+        taskList.appendChild(li);
+
+       
+        li.querySelector('.editarBtn').addEventListener('click', function () {
+          editarTarefa(novaTarefa._id, novaTarefa.titulo);
+        });
+        li.querySelector('.deletarBtn').addEventListener('click', function () {
+          deletarTarefa(novaTarefa._id);
+        });
+
+        document.getElementById('titulo').value = '';  
+      } catch (error) {
+        console.error('Erro ao adicionar tarefa:', error);
+        alert('Não foi possível adicionar a tarefa.');
+      }
+    }
+
+    //editar tarefa
+    async function editarTarefa(id, tituloAtual) {
+      const novoTitulo = prompt('Editar Título', tituloAtual);
+      if (!novoTitulo) return;
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Você precisa estar logado.');
+        return;
+      }
+
+      try {
+        const response = await axios.put(`http://localhost:3000/tarefa/${id}`, {
+          titulo: novoTitulo,
+        }, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const tarefaAtualizada = response.data;
+        const tarefaElement = document.querySelector(`[data-id="${id}"]`);
+        tarefaElement.querySelector('span').textContent = tarefaAtualizada.titulo;
+      } catch (error) {
+        console.error('Erro ao editar tarefa:', error);
+        alert('Não foi possível editar a tarefa.');
+      }
+    }
+//excluir a tarefa
+    async function deletarTarefa(id) {
+      if (!confirm('Tem certeza que deseja excluir esta tarefa?')) return;
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Você precisa estar logado.');
+        return;
+      }
+
+      try {
+        await axios.delete(`http://localhost:3000/tarefa/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const tarefaElement = document.querySelector(`[data-id="${id}"]`);
+        tarefaElement.remove();
+      } catch (error) {
+        console.error('Erro ao deletar tarefa:', error);
+        alert('Não foi possível deletar a tarefa.');
+      }
+    }
+
+
+    document.getElementById('taskForm').addEventListener('submit', adicionarTarefa);
+
+    document.addEventListener('DOMContentLoaded', function () {
+      listarTarefas();
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+  const logoutButton = document.getElementById('logoutButton');
+
+  if (logoutButton) {
+    logoutButton.addEventListener('click', function () {
+      localStorage.removeItem('token');
+
+      const adminContainer = document.getElementById('admin-container');
+      if (adminContainer) {
+        adminContainer.style.display = 'none';
+      }
+
+      window.location.href = 'index.html'; 
+    });
+  }
+});
+
+
+  </script>
+</body>
+</html>
